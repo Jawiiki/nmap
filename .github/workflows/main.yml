@@ -1,0 +1,43 @@
+name: Build Nmap for AArch64
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        architecture: [aarch64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up QEMU
+        run: |
+          sudo apt-get install qemu-user-static
+
+      - name: Build Nmap
+        run: |
+          docker run --rm --platform linux/arm64/v8 \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            arm64v8/ubuntu:latest \
+            /bin/bash -c "
+            apt-get update && \
+            apt-get install -y build-essential libssl-dev libpcap-dev && \
+            ./configure && \
+            make && \
+            make install
+            "
+
+      - name: Archive binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: nmap-binaries
+          path: /workspace/nmap
